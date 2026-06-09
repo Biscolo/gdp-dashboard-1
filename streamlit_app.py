@@ -1,151 +1,91 @@
-import streamlit as st
-import pandas as pd
-import math
-from pathlib import Path
-
-# Set the title and favicon that appear in the Browser's tab bar.
-st.set_page_config(
-    page_title='GDP dashboard',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
-)
-
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
-
-@st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
-
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
+class Smartphone:
+    """
+    Classe que representa um Smartphone.
+    Aplica conceitos de POO: encapsulamento, getters, setters e métodos de ação.
     """
 
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
+    def __init__(self, marca: str, modelo: str, bateria: int):
+        self.__marca: str = marca
+        self.__modelo: str = modelo
+        self._bateria: int = max(0, min(100, bateria))
+        self.__ligado: bool = False
+        self.__apps_instalados: list[str] = []
+        self.__historico: list[str] = []
 
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
+    # ---- Getters ----
 
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
-    )
+    def get_marca(self) -> str:
+        return self.__marca
 
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
+    def get_modelo(self) -> str:
+        return self.__modelo
 
-    return gdp_df
+    def get_bateria(self) -> int:
+        return self._bateria
 
-gdp_df = get_gdp_data()
+    def get_ligado(self) -> bool:
+        return self.__ligado
 
-# -----------------------------------------------------------------------------
-# Draw the actual page
+    def get_apps_instalados(self) -> list[str]:
+        return list(self.__apps_instalados)
 
-# Set the title that appears at the top of the page.
-'''
-# :earth_americas: GDP dashboard
+    def get_historico(self) -> list[str]:
+        return list(self.__historico)
 
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
-'''
+    # ---- Setters ----
 
-# Add some spacing
-''
-''
+    def set_marca(self, marca: str) -> None:
+        if not marca.strip():
+            raise ValueError("A marca não pode ser vazia.")
+        self.__marca = marca.strip()
 
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
+    def set_modelo(self, modelo: str) -> None:
+        if not modelo.strip():
+            raise ValueError("O modelo não pode ser vazio.")
+        self.__modelo = modelo.strip()
 
-from_year, to_year = st.slider(
-    'Which years are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
+    def set_bateria(self, bateria: int) -> None:
+        if not (0 <= bateria <= 100):
+            raise ValueError("O nível de bateria deve estar entre 0 e 100%.")
+        self._bateria = bateria
 
-countries = gdp_df['Country Code'].unique()
+    # ---- Métodos de ação ----
 
-if not len(countries):
-    st.warning("Select at least one country")
+    def ligar_desligar(self) -> str:
+        if not self.__ligado and self._bateria == 0:
+            msg = "Sem bateria! Carregue o smartphone antes de ligá-lo."
+            self.__historico.append(msg)
+            return msg
+        self.__ligado = not self.__ligado
+        estado = "LIGADO" if self.__ligado else "DESLIGADO"
+        msg = f"Smartphone {self.__marca} {self.__modelo} foi {estado}."
+        self.__historico.append(msg)
+        return msg
 
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
-    countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
+    def instalar_app(self, app: str) -> str:
+        if not self.__ligado:
+            msg = "O smartphone está desligado. Ligue-o para instalar aplicativos."
+            self.__historico.append(msg)
+            return msg
+        app = app.strip()
+        if app in self.__apps_instalados:
+            msg = f"O app '{app}' já está instalado."
+            self.__historico.append(msg)
+            return msg
+        self.__apps_instalados.append(app)
+        msg = f"App '{app}' instalado com sucesso!"
+        self.__historico.append(msg)
+        return msg
 
-''
-''
-''
-
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
-]
-
-st.header('GDP over time', divider='gray')
-
-''
-
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
-)
-
-''
-''
-
-
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
-
-st.header(f'GDP in {to_year}', divider='gray')
-
-''
-
-cols = st.columns(4)
-
-for i, country in enumerate(selected_countries):
-    col = cols[i % len(cols)]
-
-    with col:
-        first_gdp = first_year[first_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[last_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
+    def desinstalar_app(self, app: str) -> str:
+        if app in self.__apps_instalados:
+            self.__apps_instalados.remove(app)
+            msg = f"App '{app}' removido."
         else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
+            msg = f"App '{app}' não encontrado."
+        self.__historico.append(msg)
+        return msg
 
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
-        )
+    def carregar_bateria(self, quantidade: int) -> str:
+        anterior = self._bateria
+        self._bateria = min(100, self._bateria + quantidade)
