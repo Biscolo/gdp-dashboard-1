@@ -89,3 +89,35 @@ class Smartphone:
     def carregar_bateria(self, quantidade: int) -> str:
         anterior = self._bateria
         self._bateria = min(100, self._bateria + quantidade)
+        ganho = self._bateria - anterior
+        msg = f"Bateria carregada +{ganho}%. Nível atual: {self._bateria}%."
+        self.__historico.append(msg)
+        return msg
+
+    def usar_bateria(self, quantidade: int) -> str:
+        if not self.__ligado:
+            return "O smartphone está desligado."
+        anterior = self._bateria
+        self._bateria = max(0, self._bateria - quantidade)
+        consumido = anterior - self._bateria
+        msg = f"Bateria consumida -{consumido}%. Nível atual: {self._bateria}%."
+        if self._bateria == 0:
+            self.__ligado = False
+            msg += " Bateria esgotada! Smartphone desligado automaticamente."
+        self.__historico.append(msg)
+        return msg
+
+    def resumo(self) -> dict:
+        return {
+            "Marca": self.__marca,
+            "Modelo": self.__modelo,
+            "Bateria": f"{self._bateria}%",
+            "Status": "Ligado" if self.__ligado else "Desligado",
+            "Apps instalados": self.__apps_instalados if self.__apps_instalados else ["Nenhum"],
+        }
+
+    def __str__(self) -> str:
+        return (
+            f"Smartphone(marca='{self.__marca}', modelo='{self.__modelo}', "
+            f"bateria={self._bateria}%, ligado={self.__ligado})"
+        )
