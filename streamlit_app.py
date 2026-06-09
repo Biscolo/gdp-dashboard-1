@@ -215,4 +215,16 @@ with aba_energia:
             st.rerun()
             
     with col_eng2:
-        qtd_uso = st.number_input("Quantidade para Consumir (%)", min_value=1, max_value=100, value=10
+        with col_eng1:
+        qtd_carregar = st.number_input("Quantidade para Carregar (%)", min_value=1, max_value=100, value=15) # <-- Fechado aqui )
+        if st.button("⚡ Carregar Bateria", use_container_width=True):
+            retorno = celular.carregar_bateria(qtd_carregar)
+            st.success(retorno)
+            st.rerun()
+            
+    with col_eng2:
+        qtd_uso = st.number_input("Quantidade para Consumir (%)", min_value=1, max_value=100, value=10) # <-- O SEU ERRO ESTAVA AQUI! Faltava o )
+        if st.button("🎮 Jogar / Usar Celular", use_container_width=True):
+            retorno = celular.usar_bateria(qtd_uso)
+            st.error(retorno)
+            st.rerun()
